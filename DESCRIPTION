@@ -1,0 +1,15 @@
+Package: ceeComp
+Maintainer: <F.Achana@warwick.ac.uk>
+Author: <louqman@gmail.com, F.Achana@warwick.ac.uk>
+Version: 1.0.0
+License: GPL-3
+Title: Assessing agreement between cost-effectiveness estimates from
+    differentes sources
+Description: In trial based economic evaluations , multiple sources of data on
+    resource use and costs is sometimes available for estimating the
+    cost-effectiveness of one treatment relative to another. There is often an
+    interest in gauging the reliability of the alternative sources compared to
+    the one considered as gold standard. This aim of this R package is assess
+    agreement between cost-effectiveness estimates from differentes sources.
+Depends:
+    boot
