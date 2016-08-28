@@ -1,0 +1,438 @@
+##Need to load car package
+rm(list=ls(all=TRUE))
+library(car)
+library(msm)
+#setwd("M:\\StorageNow-S2Team1\\T3\\Health Economics\\Felix Achana\\PiPS Trial\\Paper\\R2")
+#data1 = read.csv("comb_sec_1.csv",header=TRUE,stringsAsFactors = FALSE) #PiPs dataset
+#data2 = read.csv("pips_sec_1.csv",header=TRUE,stringsAsFactors = FALSE) #PiPs dataset
+#data3 = read.csv("nnrd_sec_1.csv",header=TRUE,stringsAsFactors = FALSE) #PiPs dataset
+#data4 = read.csv("nnrd_2.csv",header=TRUE,stringsAsFactors = FALSE)     #NNRD2 dataset
+#data1 = data1[order(data1$idnumber),]
+#data2 = data2[order(data2$idnumber),]
+#data3 = data3[order(data3$idnumber),]
+#data4 = data4[order(data4$idnumber),]
+#sum(ifelse(data1$idnumber==data2$idnumber,1,0))
+#sum(ifelse(data1$idnumber==data3$idnumber,1,0))
+#sum(ifelse(data1$idnumber==data4$idnumber,1,0))
+
+#load required packages
+rm(list=ls(all=TRUE))
+library(car)  #plot ce planes
+library(boot) #inverse-logit function
+library(msm)  #delta method and logit functions
+
+
+logit(0.108)/logit(0.113)
+logit(0.113)/logit(0.108)
+exp(1.024692)
+
+#simulate binary outcome data (equation 3)
+n1    = 500                              #sample size in placebo arm
+n2    = 500                             #sample size in probiotic arm
+n     = n1+n2
+trt   = c(rep(1,n1),rep(2,n2))           #treatment group variable
+ypred = logit(0.113)+log(0.9504)*(trt-1) #linear predictor for effects
+prob  = inv.logit(ypred)                 #inv-logit transformation
+set.seed(1234) 
+y = rbinom(n,1,prob)                     #bernoulli response variable (1=death,0=alive)
+mean(y[trt==1])
+mean(y[trt==2])
+
+#simulated costs data
+meancost   = c(62284,62799)                  #natural/normal scale(control arm, treatment arm)
+sdcost     = c(1876*sqrt(n1),1817*sqrt(n2))  #natural/normal scale(control arm, treatment arm)
+rho        = c(0.32,0.25)                    #correlation between costs and effects
+simcosts   = array(NA,dim=c(n))              #vector to contain simulated costs
+mucost     = array(NA,dim=c(n))   #conditional costs (normal distr.)
+mulogcost  = array(NA,dim=c(n))   #conditional costs (lognormal distr.)
+phicost    = array(NA,dim=c(n))   #conditional variance of costs (normal distr)
+philogcost = array(NA,dim=c(n))   #conditional variance of costs (lognormal distr)
+
+set.seed(1234) 
+for(i in 1:2) #two treatment arms
+{
+#normal distribution (equation 4)
+mucost[trt==i]   = meancost[i] + (rho[i]*sdcost[i]/sd(y[trt==i]))*(y[trt==i] - mean(y[trt==i])) 
+phicost[trt==i]  = (1-rho[i]^2)*sdcost[i]^2                                               
+simcosts[trt==i] = rnorm(n/2,mucost[trt==i],sqrt(phicost[trt==i]))                           
+
+#lognormal distr. (equation 5)
+philogcost[trt==i] = log(1+(phicost[trt==i]/mucost[trt==i]^2))                      
+mulogcost[trt==i]  = log(mucost[trt==i])-0.5*log(1+(phicost[trt==i]/mucost[trt==i]^2))
+simcosts[trt==i]   = rlnorm(n/2,mulogcost[trt==i],sqrt(philogcost[trt==i]))          
+}
+
+#check correlation between costs and outcomes
+cor(simcosts[trt==1],y[trt==1])
+cor(simcosts[trt==2],y[trt==2])
+
+#--------- Create two datasets ---------------------------------------------
+# simulate two datasets. 
+# in dataset 1, the treatment is more costly and more effective than control
+# in dataset 2, the treatment is less costly and less effective than control 
+#---------------------------------------------------------------------------
+ndata = 4
+sim.costs1   = array(NA,dim=c(n)) 
+sim.costs2   = array(NA,dim=c(n))
+sim.outcome1 = array(NA,dim=c(n)) 
+sim.outcome2 = array(NA,dim=c(n))
+sim.costs3   = array(NA,dim=c(n)) 
+sim.costs4   = array(NA,dim=c(n))
+sim.outcome3 = array(NA,dim=c(n)) 
+sim.outcome4 = array(NA,dim=c(n))
+
+sim.costs1           = simcosts
+sim.costs3[trt==1]   = simcosts[trt==2]
+sim.costs3[trt==2]   = simcosts[trt==1]
+sim.costs2           = sim.costs1
+sim.costs4           = sim.costs3
+
+sim.outcome1         = y
+sim.outcome3[trt==1] = y[trt==2]
+sim.outcome3[trt==2] = y[trt==1]
+sim.outcome2         = sim.outcome3
+sim.outcome4         = sim.outcome1
+
+ptm <- proc.time()
+id              = trt
+id[id==1] = "A"
+id[id==2] = "B"
+Costs        = cbind(sim.costs1, sim.costs2, sim.costs3 ,sim.costs4)
+Outcome      = cbind(sim.outcome1, sim.outcome2, sim.outcome3 ,sim.outcome4)
+Costs        = cbind(data1[,3],data2[,3],data3[,3],data4[,3])
+Outcome      = cbind(data1[,5],data2[,5],data3[,5],data4[,5])
+
+
+#Calculate mean costs, outcomes and associated stanadard errors for each treatment arm
+#---------------------------------------------------------------------------------------
+meanCostsA   = apply(Costs[id=="A",],2,mean)
+meanCostsB   = apply(Costs[id=="B",],2,mean)
+meanOutcomeA = apply(Outcome[id=="A",],2,mean)
+meanOutcomeB = apply(Outcome[id=="B",],2,mean)
+seCostsA     = sqrt(apply(Costs[id=="A",],2,function(x) var(x)/sum(id=="A")))
+seCostsB     = sqrt(apply(Costs[id=="B",],2,function(x) var(x)/sum(id=="B")))
+seOutcomeA   = sqrt(apply(Outcome[id=="A",],2,function(x) mean(x)*(1-mean(x))/sum(id=="A")))
+seOutcomeB   = sqrt(apply(Outcome[id=="B",],2,function(x) mean(x)*(1-mean(x))/sum(id=="B")))
+incCosts     = meanCostsB-meanCostsA
+incOutcome   = meanOutcomeA-meanOutcomeB
+icer         = incCosts/incOutcome
+
+#Net benefit
+nDatasets            = ncol(Costs)
+covCostsA            = matrix(NA,nrow=nDatasets,ncol=nDatasets)
+rhoCostsOutcomeA     = matrix(NA,nrow=nDatasets,ncol=nDatasets)
+rhoCostsOutcomeB     = matrix(NA,nrow=nDatasets,ncol=nDatasets)
+covCostsB            = matrix(NA,nrow=nDatasets,ncol=nDatasets)
+covDeltaCosts        = matrix(NA,nrow=nDatasets,ncol=nDatasets)
+
+wtp                  = c(0:100)*5000
+NB                   = matrix(NA,nrow=length(wtp),ncol=nDatasets)
+seNB                 = matrix(NA,nrow=length(wtp),ncol=nDatasets)
+lclNB                = matrix(NA,nrow=length(wtp),ncol=nDatasets)
+uclNB                = matrix(NA,nrow=length(wtp),ncol=nDatasets)
+covNB                = array(NA,dim=c(nDatasets,nDatasets,length(wtp)))
+rhoNB                = array(NA,dim=c(nDatasets,nDatasets,length(wtp)))
+diffNB               = array(NA,dim=c(nDatasets,nDatasets,length(wtp)))
+sediffNB             = array(NA,dim=c(nDatasets,nDatasets,length(wtp)))
+lcldiffNB            = array(NA,dim=c(nDatasets,nDatasets,length(wtp)))
+ucldiffNB            = array(NA,dim=c(nDatasets,nDatasets,length(wtp)))
+pvalueNB             = array(NA,dim=c(nDatasets,nDatasets,length(wtp)))
+cbNB                 = array(NA,dim=c(nDatasets,nDatasets,length(wtp)))
+cccNB                = array(NA,dim=c(nDatasets,nDatasets,length(wtp)))
+mucccNB              = array(NA,dim=c(nDatasets,nDatasets,length(wtp)))
+zcccNB               = array(NA,dim=c(nDatasets,nDatasets,length(wtp)))
+secccNB              = array(NA,dim=c(nDatasets,nDatasets,length(wtp)))
+lclcccNB             = array(NA,dim=c(nDatasets,nDatasets,length(wtp)))
+uclcccNB             = array(NA,dim=c(nDatasets,nDatasets,length(wtp)))
+dLoss                = array(NA,dim=c(nDatasets,nDatasets,length(wtp)))
+ccc02                = array(NA,dim=c(nDatasets,nDatasets,length(wtp)))
+pvaluecccNB1         = array(NA,dim=c(nDatasets,nDatasets,length(wtp)))
+pvaluecccNB2         = array(NA,dim=c(nDatasets,nDatasets,length(wtp)))
+covOutcomeB          = array(NA,dim=c(nDatasets,nDatasets,length(wtp)))
+covOutcomeA          = array(NA,dim=c(nDatasets,nDatasets,length(wtp)))
+covCostsOutcomeA     = array(NA,dim=c(nDatasets,nDatasets,length(wtp)))
+covCostsOutcomeB     = array(NA,dim=c(nDatasets,nDatasets,length(wtp)))
+covDeltaOutcome      = array(NA,dim=c(nDatasets,nDatasets,length(wtp)))
+covDeltaCostsOutcome = array(NA,dim=c(nDatasets,nDatasets,length(wtp)))
+
+pow <- function(a,b) a^b #power function
+
+#Covariance between two net benefit functions
+#-------------------------------------------------------------------------------
+for(k in 1:nDatasets){
+    for(m in 1:nDatasets){
+        covCostsA[k,m]     = cor(Costs[id=="A",k],Costs[id=="A",m])*seCostsA[k]*seCostsA[m]  
+        covCostsB[k,m]     = cor(Costs[id=="B",k],Costs[id=="B",m])*seCostsB[k]*seCostsB[m]
+        covDeltaCosts[k,m] = covCostsA[k,m] + covCostsB[k,m] 
+ 
+        for(j in 1:length(wtp)){
+           covOutcomeA[k,m,j]          = wtp[j]*wtp[j]*cor(Outcome[id=="A",k],Outcome[id=="A",m])*seOutcomeA[k]*seOutcomeA[m]  
+           covOutcomeB[k,m,j]          = wtp[j]*wtp[j]*cor(Outcome[id=="B",k],Outcome[id=="B",m])*seOutcomeB[k]*seOutcomeB[m]  
+           covCostsOutcomeA[k,m,j]     = wtp[j]*cor(Costs[id=="A",k],Outcome[id=="A",m])*seCostsA[k]*seOutcomeA[m]
+           covCostsOutcomeB[k,m,j]     = wtp[j]*cor(Costs[id=="B",k],Outcome[id=="B",m])*seCostsB[k]*seOutcomeB[m]
+           covDeltaOutcome[k,m,j]      = covOutcomeA[k,m,j] + covOutcomeB[k,m,j] 
+           covDeltaCostsOutcome[k,m,j] = -(covCostsOutcomeA[k,m,j] + covCostsOutcomeB[k,m,j])
+      }
+   }
+} 
+
+# calculate net benefit and test statistics based on nb
+#-----------------------------------------------------------
+seincCosts   = rep(NA,nDatasets)
+seincOutcome = rep(NA,nDatasets)
+for(k in 1:nDatasets){
+    seincCosts[k]   = sqrt(seCostsA[k]^2   + seCostsB[k]^2)    
+    seincOutcome[k] = sqrt(seOutcomeA[k]^2 + seOutcomeB[k]^2) 
+
+      for(j in 1:length(wtp)){
+      seincOutcomeB = cor(Outcome[id=="B",k],Outcome[id=="B",m])*seOutcomeB[k]*seOutcomeB[m] 
+      NB[j,k]       = wtp[j]*incOutcome[k]-incCosts[k]
+      seNB[j,k]     = sqrt(wtp[j]*wtp[j]*(seOutcomeA[k]^2 + seOutcomeB[k]^2)+ (seCostsA[k]^2 + seCostsB[k]^2) 
+                           + 2*wtp[j]*(cor(Costs[id=="A",k],Outcome[id=="A",k])*seOutcomeA[k]*seCostsA[k])
+                           + 2*wtp[j]*(cor(Costs[id=="B",k],Outcome[id=="B",k])*seOutcomeB[k]*seCostsB[k]))
+      lclNB[j,k]    = NB[j,k] - 1.96*seNB[j,k]
+      uclNB[j,k]    = NB[j,k] + 1.96*seNB[j,k]
+
+       for(m in 1:nDatasets){
+           # test of difference (section 2.1)
+           #------------------------------------------------------------------------------------------------------------------------
+           diffNB[k,m,j]    = NB[j,k] - NB[j,m]  
+           covNB[k,m,j]     = covDeltaOutcome[k,m,j] - covDeltaCostsOutcome[k,m,j]-covDeltaCostsOutcome[m,k,j] + covDeltaCosts[k,m]
+           rhoNB[k,m,j]     = covNB[k,m,j]/(seNB[j,k]*seNB[j,m]) 
+           sediffNB[k,m,j]  = sqrt(seNB[j,k]^2 + seNB[j,m]^2 - 2*covNB[k,m,j])
+           lcldiffNB[k,m,j] = diffNB[k,m,j] - 1.96*sediffNB[k,m,j]
+           ucldiffNB[k,m,j] = diffNB[k,m,j] + 1.96*sediffNB[k,m,j]  
+           pvalueNB[k,m,j]  = 2*pnorm(-abs(diffNB[k,m,j])/sediffNB[k,m,j])
+            
+          
+           #Lin's concordance correlation (section 2.3)
+           #---------------------------------------------------------------------------------------------------------------------------
+           mucccNB[k,m,j] = abs(diffNB[k,m,j])/sqrt(seNB[j,k]^2 * seNB[j,m]^2)
+           cbNB[k,m,j]    = 2*seNB[j,k]*seNB[j,m]/(diffNB[k,m,j]^2 + seNB[j,k]^2 + seNB[j,m]^2)
+           cccNB[k,m,j]   = rhoNB[k,m,j]*cbNB[k,m,j]
+           zcccNB[k,m,j]  = 0.5*log((1+cccNB[k,m,j])/(1-cccNB[k,m,j]))
+           secccNB[k,m,j] = sqrt((1/(nrow(Costs)-2))*(
+            (1-pow(rhoNB[k,m,j],2))*pow(cccNB[k,m,j],2)/(1-pow(cccNB[k,m,j],2))*pow(rhoNB[k,m,j],2)
+           +(2*pow(cccNB[k,m,j],3)*(1-cccNB[k,m,j])*pow(mucccNB[k,m,j],2)/(rhoNB[k,m,j]*(1-pow(cccNB[k,m,j],2))^2))
+           -(pow(cccNB[k,m,j],4)*pow(mucccNB[k,m,j],4)/(2*pow(rhoNB[k,m,j],2)*(1-pow(cccNB[k,m,j],2))^2))))
+ 
+           lclcccNB[k,m,j]    = (exp(2*(zcccNB[k,m,j]- 1.96*secccNB[k,m,j]))-1)/(exp(2*(zcccNB[k,m,j]- 1.96*secccNB[k,m,j]))+1)
+           uclcccNB[k,m,j]    = (exp(2*(zcccNB[k,m,j]+ 1.96*secccNB[k,m,j]))-1)/(exp(2*(zcccNB[k,m,j]+ 1.96*secccNB[k,m,j]))+1)
+  
+           #Test hypothesis that cccNB > 0.4
+           #------------------------------------------------------------------------------------------------------------------------------
+           ccc01               = 0.4
+           pvaluecccNB1[k,m,j] = pnorm(-abs(zcccNB[k,m,j]-0.5*log((1+ccc01)/(1-ccc01)))/secccNB[k,m,j])
+           dLoss[k,m,j]        = (0.15*rhoNB[k,m,j])^2
+           ccc02[k,m,j]        = cbNB[k,m,j]*sqrt(rhoNB[k,m,j]^2-dLoss[k,m,j])
+           pvaluecccNB2[k,m,j] = pnorm(-abs(zcccNB[k,m,j]-0.5*log((1+ccc02[k,m,j] )/(1-ccc02[k,m,j] )))/secccNB[k,m,j])
+      }
+   }
+}
+
+pvaluecccNB2[,,7]
+secccNB[,,7]
+
+#Bootstrap routines
+#----------------------------------------------------------------
+Replicates    = 1000       # No bootstrap replicates
+sCosts        = matrix(NA, nrow=nrow(Costs), ncol=nDatasets)
+sOutcome      = matrix(NA, nrow=nrow(Costs), ncol=nDatasets)
+sid           = c(1:nrow(Costs))
+bsCostsA      = matrix(NA, nrow=Replicates,ncol=nDatasets)
+bsCostsB      = matrix(NA, nrow=Replicates,ncol=nDatasets)
+bsOutcomeA    = matrix(NA, nrow=Replicates,ncol=nDatasets)
+bsOutcomeB    = matrix(NA, nrow=Replicates,ncol=nDatasets)
+sebsCostsA    = matrix(NA, nrow=Replicates,ncol=nDatasets)
+sebsCostsB    = matrix(NA, nrow=Replicates,ncol=nDatasets)
+sebsOutcomeA  = matrix(NA, nrow=Replicates,ncol=nDatasets)
+sebsOutcomeB  = matrix(NA, nrow=Replicates,ncol=nDatasets)
+CovDeltabsCostsbsOutcome = matrix(NA, nrow=Replicates,ncol=nDatasets)
+
+set.seed(1234)
+for (i in 1:Replicates)
+{
+for (j in 1:nrow(Costs))
+{
+index = sample.int(nrow(Costs),1)
+sCosts[j,]   = Costs[index,]
+sOutcome[j,] = Outcome[index,]
+sid[j]       = id[index]
+}
+bsCostsA[i,]     = apply(sCosts[sid=="A",],2,mean)
+bsCostsB[i,]     = apply(sCosts[sid=="B",],2,mean)
+bsOutcomeA[i,]   = apply(sOutcome[sid=="A",],2,mean)
+bsOutcomeB[i,]   = apply(sOutcome[sid=="B",],2,mean)
+sebsCostsA[i,]   = sqrt(apply(sCosts[sid=="A",],2,function(x)  var(x)/sum(sid=="A")))
+sebsCostsB[i,]   = sqrt(apply(sCosts[sid=="B",],2,function(x)  var(x)/sum(sid=="B")))
+sebsOutcomeA[i,] = sqrt(apply(sOutcome[sid=="A",],2,function(x) mean(x)*(1-mean(x))/sum(sid=="A")))
+sebsOutcomeB[i,] = sqrt(apply(sOutcome[sid=="B",],2,function(x) mean(x)*(1-mean(x))/sum(sid=="B")))
+for(k in 1:nDatasets){
+CovDeltabsCostsbsOutcome[i,k] = cor(sCosts[sid=="A",k],sOutcome[sid=="A",k])*sd(sCosts[sid=="A",k])*sd(sOutcome[sid=="A",k])/sum(sid=="A") +
+                                cor(sCosts[sid=="B",k],sOutcome[sid=="B",k])*sd(sCosts[sid=="B",k])*sd(sOutcome[sid=="B",k])/sum(sid=="B")
+}
+}
+
+#------- Calculate boostrap icers and nb ------------------------
+#-----------------------------------------------------------------------
+bsincCosts   = bsCostsB-bsCostsA
+bsincOutcome = bsOutcomeA-bsOutcomeB
+bsICER       = matrix(NA, nrow=Replicates,ncol=nDatasets)
+bsNB         = array(NA, dim=c(Replicates,length(wtp),nDatasets))
+sebsNB       = array(NA, dim=c(Replicates,length(wtp),nDatasets))
+lclbsNB      = array(NA, dim=c(Replicates,length(wtp),nDatasets))
+uclbsNB      = array(NA, dim=c(Replicates,length(wtp),nDatasets))
+for(i in 1:Replicates){
+    for(k in 1:nDatasets){
+        bsICER[i,k] = bsincCosts[i,k]/bsincOutcome[i,k] 
+    for(j in 1:length(wtp)){
+          bsNB[i,j,k]    = wtp[j]*bsincOutcome[i,k] - bsincCosts[i,k]
+          sebsNB[i,j,k]  = sqrt(wtp[j]*wtp[j]*(sebsOutcomeA[i,k]^2 + sebsOutcomeB[i,k]^2)+ (sebsCostsA[i,k]^2 + sebsCostsB[i,k]^2) + 2*wtp[j]*CovDeltabsCostsbsOutcome[i,k])
+          lclbsNB[i,j,k] = bsNB[i,j,k] - 1.96*sebsNB[i,j,k]   
+          uclbsNB[i,j,k] = bsNB[i,j,k] + 1.96*sebsNB[i,j,k] 
+     } 
+   }
+}
+meanbsNB    = matrix(NA, nrow=length(wtp),ncol=nDatasets)
+semeanbsNB  = matrix(NA, nrow=length(wtp),ncol=nDatasets)
+semeanbsNB1 = matrix(NA, nrow=length(wtp),ncol=nDatasets)
+lclmeanbsNB = matrix(NA, nrow=length(wtp),ncol=nDatasets)
+uclmeanbsNB = matrix(NA, nrow=length(wtp),ncol=nDatasets)
+for(k in 1:nDatasets){
+    for(j in 1:length(wtp)){
+    meanbsNB[j,k]    = wtp[j]*mean(bsincOutcome[,k]) - mean(bsincCosts[,k])
+    semeanbsNB[j,k]  = mean(sebsNB[,j,k])
+    semeanbsNB1[j,k] = sd(bsNB[,j,k])
+    lclmeanbsNB[j,k] = meanbsNB[j,k] - 1.96*semeanbsNB[j,k]
+    uclmeanbsNB[j,k] = meanbsNB[j,k] + 1.96*semeanbsNB[j,k]
+  }
+}
+
+#Miscoverage stats
+#--------------------------------------------------------------------------
+NB12.Miscoverage = matrix(NA,nrow=Replicates,ncol=length(wtp))
+NB13.Miscoverage = matrix(NA,nrow=Replicates,ncol=length(wtp))
+NB14.Miscoverage = matrix(NA,nrow=Replicates,ncol=length(wtp))
+NB23.Miscoverage = matrix(NA,nrow=Replicates,ncol=length(wtp))
+NB24.Miscoverage = matrix(NA,nrow=Replicates,ncol=length(wtp))
+NB34.Miscoverage = matrix(NA,nrow=Replicates,ncol=length(wtp))
+for(i in 1:Replicates){
+   for(j in 1:length(wtp)){
+      NB12.Miscoverage[i,j] = ifelse(lclbsNB[i,j,2]<=NB[j,1] & NB[j,1]<= uclbsNB[i,j,2],0,1)
+      NB13.Miscoverage[i,j] = ifelse(lclbsNB[i,j,3]<=NB[j,1] & NB[j,1]<= uclbsNB[i,j,3],0,1)
+      NB14.Miscoverage[i,j] = ifelse(lclbsNB[i,j,4]<=NB[j,1] & NB[j,1]<= uclbsNB[i,j,4],0,1)
+      NB23.Miscoverage[i,j] = ifelse(lclbsNB[i,j,3]<=NB[j,2] & NB[j,2]<= uclbsNB[i,j,3],0,1)
+      NB24.Miscoverage[i,j] = ifelse(lclbsNB[i,j,4]<=NB[j,2] & NB[j,2]<= uclbsNB[i,j,4],0,1)
+      NB34.Miscoverage[i,j] = ifelse(lclbsNB[i,j,4]<=NB[j,3] & NB[j,3]<= uclbsNB[i,j,4],0,1)
+} 
+}
+NB12.Miscprop  = colMeans(NB12.Miscoverage)
+NB13.Miscprop  = colMeans(NB13.Miscoverage)
+NB14.Miscprop  = colMeans(NB14.Miscoverage)
+NB23.Miscprop  = colMeans(NB23.Miscoverage)
+NB24.Miscprop  = colMeans(NB24.Miscoverage)
+NB34.Miscprop  = colMeans(NB34.Miscoverage)
+
+#CE estimate table 
+#----------------------------------------------------------------------------------------------------
+ceTable = cbind(round(meanCostsA,0),round(seCostsA,0)   ,round(meanOutcomeA,4) ,round(seOutcomeA,4),
+                 round(meanCostsB,0),round(seCostsB,0)   ,round(meanOutcomeB,4) ,round(seOutcomeB,4),
+                 round(incCosts,0)  ,round(seincCosts,0) ,round(incOutcome,4)   ,round(seincOutcome,4),                   
+                round(icer,0))
+colnames(ceTable) =c("meanCostsA","seCostsA","meanOutcomeA","seOutcomeA",
+                     "meanCostsB","seCostsB","meanOutcomeB","seOutcomeB",
+                     "incCosts","seincCosts","incOutcome","seincOutcome","ICER")
+ceTable
+
+#Agreement statistics table
+#---------------------------------------------------------------------------------------------------------------
+results12  = c(round(NB[7,1],0), round(seNB[7,1],0),round(NB[7,2],0), round(seNB[7,2],0), round(diffNB[2,1,7],0),round(sediffNB[2,1,7],0),round(pvalueNB[2,1,7],5),round(NB12.Miscprop[7],3),round(cccNB[2,1,7],2),round(lclcccNB[2,1,7],2),round(uclcccNB[2,1,7],2),round(pvaluecccNB[2,1,7],5))
+results13  = c(round(NB[7,1],0), round(seNB[7,1],0),round(NB[7,3],0), round(seNB[7,3],0), round(diffNB[3,1,7],0),round(sediffNB[3,1,7],0),round(pvalueNB[3,1,7],5),round(NB13.Miscprop[7],3),round(cccNB[3,1,7],2),round(lclcccNB[3,1,7],2),round(uclcccNB[3,1,7],2),round(pvaluecccNB[3,1,7],5)) 
+results14  = c(round(NB[7,1],0), round(seNB[7,1],0),round(NB[7,4],0), round(seNB[7,4],0), round(diffNB[4,1,7],0),round(sediffNB[4,1,7],0),round(pvalueNB[4,1,7],5),round(NB14.Miscprop[7],3),round(cccNB[4,1,7],2),round(lclcccNB[4,1,7],2),round(uclcccNB[4,1,7],2),round(pvaluecccNB[4,1,7],5))
+results23  = c(round(NB[7,2],0), round(seNB[7,2],0),round(NB[7,3],0), round(seNB[7,3],0), round(diffNB[3,2,7],0),round(sediffNB[3,2,7],0),round(pvalueNB[3,2,7],5),round(NB23.Miscprop[7],3),round(cccNB[3,2,7],2),round(lclcccNB[3,2,7],2),round(uclcccNB[3,2,7],2),round(pvaluecccNB[3,2,7],5)) 
+results24  = c(round(NB[7,2],0), round(seNB[7,2],0),round(NB[7,4],0), round(seNB[7,4],0), round(diffNB[4,2,7],0),round(sediffNB[4,2,7],0),round(pvalueNB[4,2,7],5),round(NB24.Miscprop[7],3),round(cccNB[4,2,7],2),round(lclcccNB[4,2,7],2),round(uclcccNB[4,2,7],2),round(pvaluecccNB[4,2,7],5))
+results34  = c(round(NB[7,3],0), round(seNB[7,3],0),round(NB[7,4],0), round(seNB[7,4],0), round(diffNB[4,3,7],0),round(sediffNB[4,3,7],0),round(pvalueNB[4,3,7],5),round(NB34.Miscprop[7],3),round(cccNB[4,3,7],2),round(lclcccNB[4,3,7],2),round(uclcccNB[4,3,7],2),round(pvaluecccNB[4,3,7],5))
+results    = rbind(results12,results13,results14,results23,results24,results34)
+colnames(results) =c("meanNB1","seNB1","meanNB2","seNB2","diffNB","sediffNB","pvalueNB","miscoverage prob","cccNB","lclcccNB","uclcccNB","pvaluecccNB")
+ceTable
+results
+#write.csv(ceTable,file="M:\\StorageNow-S2Team1\\T3\\Health Economics\\Felix Achana\\PiPS Trial\\Paper\\R2\\ceTable_PiPS.csv")
+#write.csv(results,file="M:\\StorageNow-S2Team1\\T3\\Health Economics\\Felix Achana\\PiPS Trial\\Paper\\R2\\PiPS_results.csv")
+proc.time() - ptm
+
+par(mfrow=c(1,2))
+#Pvalue versus wtp threshold plots
+plot(c(0,500000),c(0,1),yaxt="n",xaxt="n",type="n",main="",bty="n",xlab="Threshold (£ per sepsis averted)",ylab="P-value",cex.lab=0.9)
+lines(wtp,pvalueNB[2,1,],type="l",lty=7,lwd=1.2,col=palette()[1])
+lines(wtp,pvalueNB[3,1,],type="l",lty=2,lwd=1.2,col=palette()[2])
+lines(wtp,pvalueNB[4,1,],type="l",lty=3,lwd=1.2,col=palette()[3])
+lines(wtp,pvalueNB[3,2,],type="l",lty=4,lwd=1.2,col=palette()[4])
+lines(wtp,pvalueNB[4,2,],type="l",lty=5,lwd=1.2,col=palette()[5])
+lines(wtp,pvalueNB[4,3,],type="l",lty=6,lwd=1.2,col=palette()[6])
+#text(23000,0.6,  expression(paste("NB1(",lambda,")", "  versus NB3(",lambda,")",sep="")),cex=0.8,pos=4)
+axis(1, at=c(0,1,2,3,4,5)*100000, label=c("0","100000","200000","300000","400000","500000"),las=1, cex.axis=0.9)
+axis(2, at=c(0,0.2,0.4,0.6,0.8,1), label=c("0.00","0.20","0.40","0.60","0.80","1.00"), las=1, cex.axis=0.9)
+legend(10000,0.3, c("Comb   vs  PiPS","Comb   vs  NNRD1","Comb   vs  NNRD2","PiPS     vs  NNRD1","PiPS     vs  NNRD2","NNRD1 vs  NNRD2"),lty=c(1,2,3,4,5,6),
+lwd=c(1,1,1,1,1,1),bty="n",col=c(palette()[1],palette()[2],palette()[3],palette()[4],palette()[5],palette()[6]),cex=0.7)
+
+#miscoverage prob
+plot(c(0,500000),c(0,0.1),yaxt="n",xaxt="n",type="n",main="",bty="n",xlab="Threshold (£ per sepsis averted)",ylab="Miscoverage probability",cex.lab=0.9)
+lines(wtp,NB12.Miscprop,type="l",lty=7,lwd=1.2,col=palette()[1])
+lines(wtp,NB13.Miscprop,type="l",lty=2,lwd=1.2,col=palette()[2])
+lines(wtp,NB14.Miscprop,type="l",lty=3,lwd=1.2,col=palette()[3])
+lines(wtp,NB23.Miscprop,type="l",lty=4,lwd=1.2,col=palette()[4])
+lines(wtp,NB24.Miscprop,type="l",lty=5,lwd=1.2,col=palette()[5])
+lines(wtp,NB34.Miscprop,type="l",lty=6,lwd=1.2,col=palette()[6])
+abline(h=0.05,lty=1,col="red")
+axis(1, at=c(0,1,2,3,4,5)*100000, label=c("0","100000","200000","300000","400000","500000"), cex.axis=0.9,las=1)
+axis(2, at=c(0,0.025,0.05,0.075,0.100), label=c("0.000","0.025","0.050","0.075","0.100"), cex.axis=0.9,las=1)
+legend(10000,0.03, c("Comb   vs  PiPS","Comb   vs  NNRD1","Comb   vs  NNRD2","PiPS     vs  NNRD1","PiPS     vs  NNRD2","NNRD1 vs  NNRD2"),lty=c(1,2,3,4,5,6),
+lwd=c(1.2,1.2,1.2,1.2,1.2,1.2),bty="n",col=c(palette()[1],palette()[2],palette()[3],palette()[4],palette()[5],palette()[6]),cex=0.7)
+
+
+#Cost-effectiveness plots
+########################################################
+par(mfrow=c(2,2))
+par(mgp = c(0,1,0))
+#tiff(filename=paste("CEplane_",dat1,dat2,".tiff",sep=""),width=680,height=600,units="px",pointsize=12,bg="white")
+#Combind data
+plot(c(-0.10,0.10),c(-10000,12000),yaxt="n",xaxt="n",type="n",,main="",bty="n",
+xlab="Incremental effect (sepsis averted)",ylab="Incremental costs (£)")
+points(bsincOutcome[,1],bsincCosts[,1],type="p",pch=4,cex=0.8,col=palette()[2])
+dataEllipse(bsincOutcome[,1],bsincCosts[,1],plot.points=FALSE,add=TRUE,levels=c(0.5,0.95),center.pch=18,center.cex=1.5,col=palette()[1])
+text(0,11000, "Combined dataset", cex=0.7,font=2,pos=3)
+axis(1, at=c(-0.1,-0.075,-0.05,-0.025,0,0.025,0.05,0.075,0.1),     label=c("-0.1","-0.075","-0.05","-0.025","","0.025","0.05","0.075","0.1"), cex.axis=0.8,line=-8,padj=-0.5)
+axis(2, at=c(-10000,-7500,-5000,-2500,0,2500,5000,7500,10000), label=c("-10000","-7500","-5000","-2500","","2500","5000","7500","10000"), cex.axis=0.8,las=1,line=-12)
+#legend(0.06,8000, c("Combined"),lty=c(1,2),lwd=c(2,2),bty="n",col=c("black","blue"),cex=0.7)
+
+#PiPS
+plot(c(-0.10,0.10),c(-10000,12000),yaxt="n",xaxt="n",type="n",,main="",bty="n",
+xlab="Incremental effect (sepsis averted)",ylab="Incremental costs (£)")
+points(bsincOutcome[,2],bsincCosts[,2],type="p",pch=4,cex=0.8,col=palette()[2])
+dataEllipse(bsincOutcome[,2],bsincCosts[,2],plot.points=FALSE,add=TRUE,levels=c(0.5,0.95),center.pch=18,center.cex=1.5,col=palette()[1])
+text(0,11000, "PiPS dataset", cex=0.7,font=2,pos=3)
+axis(1, at=c(-0.1,-0.075,-0.05,-0.025,0,0.025,0.05,0.075,0.1),     label=c("-0.1","-0.075","-0.05","-0.025","","0.025","0.05","0.075","0.1"), cex.axis=0.8,line=-8,padj=-0.5)
+axis(2, at=c(-10000,-7500,-5000,-2500,0,2500,5000,7500,10000), label=c("-10000","-7500","-5000","-2500","","2500","5000","7500","10000"), cex.axis=0.8,las=1,line=-12)
+#legend(0.06,8000, c("PiPS"),lty=c(1,2),lwd=c(2,2),bty="n",col=c("black","blue"),cex=0.7)
+
+#NNRD dataset 1
+plot(c(-0.10,0.10),c(-10000,12000),yaxt="n",xaxt="n",type="n",,main="",bty="n",
+xlab="Incremental effect (sepsis averted)",ylab="Incremental costs (£)")
+points(bsincOutcome[,3],bsincCosts[,3],type="p",pch=4,cex=0.8,col=palette()[2])
+dataEllipse(bsincOutcome[,3],bsincCosts[,3],plot.points=FALSE,add=TRUE,levels=c(0.5,0.95),center.pch=18,center.cex=1.5,col=palette()[1])
+text(0,11000, "NNRD dataset 1", cex=0.7,font=2,pos=3)
+axis(1, at=c(-0.1,-0.075,-0.05,-0.025,0,0.025,0.05,0.075,0.1),     label=c("-0.1","-0.075","-0.05","-0.025","","0.025","0.05","0.075","0.1"), cex.axis=0.8,line=-8,padj=-0.5)
+axis(2, at=c(-10000,-7500,-5000,-2500,0,2500,5000,7500,10000), label=c("-10000","-7500","-5000","-2500","","2500","5000","7500","10000"), cex.axis=0.8,las=1,line=-12)
+#legend(0.06,8000, c("Combined"),lty=c(1,2),lwd=c(2,2),bty="n",col=c("black","blue"),cex=0.7)
+
+#NNRD dataset 2
+plot(c(-0.10,0.10),c(-10000,12000),yaxt="n",xaxt="n",type="n",,main="",bty="n",
+xlab="Incremental effect (sepsis averted)",ylab="Incremental costs (£)")
+points(bsincOutcome[,4],bsincCosts[,4],type="p",pch=4,cex=0.8,col=palette()[2])
+dataEllipse(bsincOutcome[,4],bsincCosts[,4],plot.points=FALSE,add=TRUE,levels=c(0.5,0.95),center.pch=18,center.cex=1.5,col=palette()[1])
+text(0,11000, "NNRD dataset 2", cex=0.7,font=2,pos=3)
+axis(1, at=c(-0.1,-0.075,-0.05,-0.025,0,0.025,0.05,0.075,0.1),     label=c("-0.1","-0.075","-0.05","-0.025","","0.025","0.05","0.075","0.1"), cex.axis=0.8,line=-8,padj=-0.5)
+axis(2, at=c(-10000,-7500,-5000,-2500,0,2500,5000,7500,10000), label=c("-10000","-7500","-5000","-2500","","2500","5000","7500","10000"), cex.axis=0.8,las=1,line=-12)
+#legend(0.06,8000, c("Combined"),lty=c(1,2),lwd=c(2,2),bty="n",col=c("black","blue"),cex=0.7)
+save.image(file="Miscoverage_PiPS.RData")
+ 
