@@ -11,6 +11,4 @@ Description: In trial based economic evaluations, multiple sources of data on
     interest in gauging the reliability of the alternative sources compared to
     the one considered as gold standard. This aim of this R package is assess
     agreement between cost-effectiveness estimates from differentes sources.
-Depends:
-    boot
 RoxygenNote: 5.0.1

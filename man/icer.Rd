@@ -10,7 +10,7 @@ icer(data1 = NULL, data2 = NULL)
 \item{data1}{a dataset with 4 columns holding respectively, ID, treatment outcome,
 treatment cost and treatment arm.}
 
-\item{data1}{a dataset with 4 columns holding respectively, ID, treatment outcome,
+\item{data2}{a dataset with 4 columns holding respectively, ID, treatment outcome,
 treatment cost and treatment arm.}
 }
 \value{
@@ -26,8 +26,8 @@ and 2 treatment arms names.
 {
 
 # load examples datasets
-load("dataset1.RData")
-load("dataset2.RData")
+data(dataset1)
+data(dataset2)
 
 # ICER computation 
 output <- icer(dataset1, dataset2)

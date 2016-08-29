@@ -6,7 +6,7 @@
 #' and 2 treatment arms names.
 #' @param data1 a dataset with 4 columns holding respectively, ID, treatment outcome,
 #'        treatment cost and treatment arm.
-#' @param data1 a dataset with 4 columns holding respectively, ID, treatment outcome,
+#' @param data2 a dataset with 4 columns holding respectively, ID, treatment outcome,
 #'        treatment cost and treatment arm.
 #' @return a list of 2 lists which hold ICER value and other statistics for each dataset
 #' @export
@@ -15,7 +15,7 @@
 #' 
 #' # load examples datasets
 #' data(dataset1)
-#' data(dataset2")
+#' data(dataset2)
 #' 
 #' # ICER computation 
 #' output <- icer(dataset1, dataset2)
@@ -50,7 +50,7 @@ icer <- function(data1=NULL, data2=NULL){
     output <- vector("list", 2)
     dt <- ldt[[i]]
     if(!is.null(dt)){
-      trt <<- unique(dt$TREATMENT)
+      trt <- unique(dt$TREATMENT)
       # stop if a table does not have the required
       # columns or if it does not have 2 treatment arms
       # or if that not have unique identifiers
