@@ -13,3 +13,4 @@ Description: In trial based economic evaluations, multiple sources of data on
     agreement between cost-effectiveness estimates from differentes sources.
 Depends:
     boot
+RoxygenNote: 5.0.1
