@@ -14,8 +14,8 @@
 #' @examples {
 #' 
 #' # load examples datasets
-#' load("dataset1.RData")
-#' load("dataset2.RData")
+#' data(dataset1)
+#' data(dataset2")
 #' 
 #' # ICER computation 
 #' output <- icer(dataset1, dataset2)

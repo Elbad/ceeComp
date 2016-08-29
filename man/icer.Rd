@@ -26,8 +26,8 @@ and 2 treatment arms names.
 {
 
 # load examples datasets
-load(dataset1)
-load(dataset2)
+load("dataset1.RData")
+load("dataset2.RData")
 
 # ICER computation 
 output <- icer(dataset1, dataset2)
