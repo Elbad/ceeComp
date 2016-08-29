@@ -117,8 +117,8 @@ dataset1 <- data.frame(cbind(paste0("ID", c(1:dim(Outcome)[1])), Outcome[,1], Co
 dataset2 <- data.frame(cbind(paste0("ID", c(1:dim(Outcome)[1])), Outcome[,2], Costs[,2], id))
 colnames(dataset1) <- c("ID", "RESPONSE", "COST", "TREATMENT")
 colnames(dataset2) <- c("ID", "RESPONSE", "COST", "TREATMENT")
-save(dataset1, file="/home/gayea/Git/ceeComp/data/dataset1.RData")
-save(dataset2, file="/home/gayea/Git/ceeComp/data/dataset2.RData")
+#save(dataset1, file="/home/gayea/Git/ceeComp/data/dataset1.RData")
+#save(dataset2, file="/home/gayea/Git/ceeComp/data/dataset2.RData")
 
 # Calculate mean costs, outcomes and associated stanadard errors for each treatment arm
 #---------------------------------------------------------------------------------------

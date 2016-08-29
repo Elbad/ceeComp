@@ -9,7 +9,26 @@
 #' @param data1 a dataset with 4 columns holding respectively, ID, treatment outcome,
 #'        treatment cost and treatment arm.
 #' @return a list of 2 lists which hold ICER value and other statistics for each dataset
+#' @export
 #' @author Amadou Gaye & Felix Achana
+#' @examples {
+#' 
+#' # load examples datasets
+#' load(dataset1.RData)
+#' load(dataset2.RData)
+#' 
+#' # ICER computation 
+#' output <- icer(dataset1, dataset2)
+#' 
+#' # display the ICER values for the two datasets
+#' # first check what objects are in 'output' and then show results
+#' names(output)
+#' output$DATASET1$ICER
+#' output$DATASET2$ICER
+#' 
+#' # we can also show all the results for a dataset
+#' output$DATASET1
+#' }
 #'
 icer <- function(data1=NULL, data2=NULL){
   
