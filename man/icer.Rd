@@ -4,42 +4,39 @@
 \alias{icer}
 \title{Computes incremental cost-effectiveness ratio (ICER)}
 \usage{
-icer(data1 = NULL, data2 = NULL)
+icer(data = NULL)
 }
 \arguments{
-\item{data1}{a dataset with 4 columns holding respectively, ID, treatment outcome,
-treatment cost and treatment arm.}
-
-\item{data2}{a dataset with 4 columns holding respectively, ID, treatment outcome,
+\item{data}{a dataset with 4 columns holding respectively, ID, treatment outcome,
 treatment cost and treatment arm.}
 }
 \value{
-a list of 2 lists which hold ICER value and other statistics for each dataset
+a list which holds to elements: ICER value and other statistics for the given dataset
 }
 \description{
-The function takes at least one dataset as input and each dataset
+The function takes one dataset as input and the dataset
 MUST have 4 columns \code{ID}, \code{RESPONSE}, \code{COST} and \code{TREATMENT}
 which hold respectively unique subject identifiers, treatment outcome, treatment cost
 and 2 treatment arms names.
+}
+\details{
+to be written
 }
 \examples{
 {
 
 # load examples datasets
 data(dataset1)
-data(dataset2)
 
 # ICER computation 
-output <- icer(dataset1, dataset2)
+output <- icer(dataset1)
 
-# display the ICER values for the two datasets
-# first check what objects are in 'output' and then show results
+# display the ICER value
 names(output)
-output$DATASET1$ICER
-output$DATASET2$ICER
+output$ICER
 
-# we can also show all the results for a dataset
-output$DATASET1
+# display the other stats 
+output$Stats
 }
 
 }
