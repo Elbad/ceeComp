@@ -1,5 +1,5 @@
 #'
-#' @title Computes computes the covariance between net benefit values from 2 distinct datasets.
+#' @title Computes the covariance between net benefit values from 2 distinct datasets.
 #' @description The function takes 2 datasets and a vector of wilingness-to-pay values.
 #' The dataset MUST have 4 columns \code{ID}, \code{RESPONSE}, \code{COST} and \code{TREATMENT}
 #' which hold respectively unique subject identifiers, treatment outcome, treatment cost
@@ -10,8 +10,10 @@
 #' @param data2 a dataset with 4 columns holding respectively, ID, treatment outcome,
 #'        treatment cost and treatment arm.
 #' @param will2pay a numeric vector of willingness-to-pay thresholds.
-#' @param extraOutput a boolean set to FALSe by default, if set to TRUE other information are returned
+#' @param extraOutput a boolean set to FALSE by default, if set to TRUE other information are returned
 #' in addition to \code{covNB}, the covariance between net benefits from the two datasets.
+#' @treatResponse a character, default is \code{beneficial} i.e. the treatment resulted in beneficial response;
+#' otherwise \code{harmful}, the treatement resulted in harmful outcome
 #' @details to be written
 #' @return a list which holds the below items; items other than \code{covNB} are optional, set the 
 #' the parameter \code{extraOutput} to have those items returned:
@@ -38,7 +40,7 @@
 #' }
 #'
 
-covNB<- function(data1=NULL, data2=NULL, will2pay=NULL, extraOutput=FALSE){
+covNB <- function(data1=NULL, data2=NULL, will2pay=NULL, extraOutput=FALSE, treatResponse="beneficial"){
   
   # stop if two datasets are not provided
   if(is.null(data1) | is.null(data2)){
@@ -73,6 +75,9 @@ covNB<- function(data1=NULL, data2=NULL, will2pay=NULL, extraOutput=FALSE){
       }
     }
   }
+  
+  # check if datasets are complete, if not remove subject with missing data in both datasets and make sure 
+  # both datasets have the same subjects and in the same order.
 
   # compute net benefit and generates summaries for both datasets
   nbRes <- vector("list", 2)
@@ -98,7 +103,8 @@ covNB<- function(data1=NULL, data2=NULL, will2pay=NULL, extraOutput=FALSE){
   covCostOutcomeA <- vector("list",length(wtp))
   covCostOutcomeB <- vector("list",length(wtp))
   covDeltaOutcome <- vector("list",length(wtp))
-  covDeltaCostOutcome <- vector("list",length(wtp))
+  covDeltaCostOutcome_A_B <- vector("list",length(wtp))
+  covDeltaCostOutcome_B_A <- vector("list",length(wtp))
   covNB <- vector("list",length(wtp))
   rhoNB <- vector("list",length(wtp))
   
@@ -107,15 +113,27 @@ covNB<- function(data1=NULL, data2=NULL, will2pay=NULL, extraOutput=FALSE){
   covCostA <- stats::cov(cbind(cost1[idxA1], cost2[idxA2]))
   covCostB <- stats::cov(cbind(cost1[idxB1], cost2[idxB2]))
   covDeltaCost <- covCostA + covCostB
+  
   for(i in 1:length(wtp)){
-    covOutcomeA[[i]] <- (wtp[i]^2) * stats::cov(cbind(outcome1[idxA1], outcome2[idxA2]))
-    covOutcomeB[[i]] <- (wtp[i]^2) * stats::cov(cbind(outcome1[idxB1], outcome2[idxB2])) 
-    covCostOutcomeA[[i]] <- (wtp[i]^2) * stats::cov(cbind(cost1[idxA1], outcome2[idxA2]))
-    covCostOutcomeB[[i]] <- (wtp[i]^2) * stats::cov(cbind(cost1[idxB1], outcome2[idxB2]))
+    covOA <- (wtp[i]^2) * (stats::cor(outcome1[idxA1], outcome2[idxA2]) * (seOutcomeA1 * seOutcomeA2))
+    covOutcomeA[[i]] <- cbind(c(seOutcomeA1^2, covOA), c(covOA, seOutcomeA2^2))
+    
+    covOB <- (wtp[i]^2) * (stats::cor(outcome1[idxB1], outcome2[idxB2]) * (seOutcomeB1 * seOutcomeB2))
+    covOutcomeB[[i]] <- cbind(c(seOutcomeB1^2, covOB), c(covOB, seOutcomeB2^2))
+    
+    covCostOutcomeA[[i]] <- (wtp[i]) * (stats::cor(cost1[idxA1], outcome2[idxA2]) * (seOutcomeA1 * seOutcomeA2))
+    covCostOutcomeB[[i]] <- (wtp[i]) * (stats::cor(cost1[idxB1], outcome2[idxB2]) * (seOutcomeB1 * seOutcomeB2))
+    
     covDeltaOutcome[[i]] <- covOutcomeA[[i]] + covOutcomeB[[i]] 
-    covDeltaCostOutcome[[i]] <- -(covCostOutcomeA[[i]] + covCostOutcomeB[[i]])
-    covNB[[i]] <- (covDeltaOutcome[[i]] - covDeltaCostOutcome[[i]]) - (covDeltaCostOutcome[[i]] + covDeltaCost)
-    rhoNB[[i]] <- covNB[[i]] / (seNB1[i] * seNB2[i]) 
+    if(treatResponse == "beneficial"){
+      covDeltaCostOutcome_A_B[[i]] <- (covCostOutcomeA[[i]] + covCostOutcomeB[[i]])
+      covDeltaCostOutcome_B_A[[i]] <- (covCostOutcomeB[[i]] + covCostOutcomeA[[i]])
+    }else{
+      covDeltaCostOutcome_A_B[[i]] <- -(covCostOutcomeA[[i]] + covCostOutcomeB[[i]])
+      covDeltaCostOutcome_B_A[[i]] <- -(covCostOutcomeB[[i]] + covCostOutcomeA[[i]])
+    }
+    covNB[[i]] <- covDeltaOutcome[[i]] - covDeltaCostOutcome_A_B[[i]] - covDeltaCostOutcome_B_A[[i]] + covDeltaCost
+    rhoNB[[i]] <- covNB[[i]]/ (seNB1[i] * seNB2[i]) 
   }
 
   # return a list with 'covNB' or more depending on what the user specified

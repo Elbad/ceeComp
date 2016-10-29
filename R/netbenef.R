@@ -8,6 +8,8 @@
 #' @param data a dataset with 4 columns holding respectively, ID, treatment outcome,
 #'        treatment cost and treatment arm.
 #' @param will2pay a numeric vector of willingness-to-pay thresholds.
+#' @treatResponse a character, default is \code{beneficial} i.e. the treatment resulted in beneficial response;
+#' otherwise \code{harmful}, the treatement resulted in harmful outcome
 #' @details to be written
 #' @return a table with for columns: net benefit, standard error, upper and lower limit
 #' @export
@@ -26,7 +28,7 @@
 #' }
 #'
 
-netbenef <- function(data=NULL, will2pay=NULL){
+netbenef <- function(data=NULL, will2pay=NULL, CI=0.95, treatResponse="beneficial"){
   
   # stop if two datasets are not provided
   if(is.null(data)){
@@ -70,8 +72,13 @@ netbenef <- function(data=NULL, will2pay=NULL){
   seOutcomeA <- s$seOutcomeA; seOutcomeB <- s$seOutcomeB
   
   # difference between treatment arms
-  incCost <- meanCostB - meanCostA
-  incOutcome <- meanOutcomeA - meanOutcomeB
+  if(treatResponse == 'beneficial'){
+    incCost <- meanCostB - meanCostA
+    incOutcome <- meanOutcomeB - meanOutcomeA
+  }else{
+    incCost <- meanCostA - meanCostB
+    incOutcome <- meanOutcomeA - meanOutcomeB
+  }
   
   # objects to hold various computed values
   NB <- rep(NA, length(wtp))
@@ -81,10 +88,16 @@ netbenef <- function(data=NULL, will2pay=NULL){
 
   # compute net benefit values, standard error, low and upper limit
   for(i in 1:length(wtp)){
-    NB[i] <- wtp[i]*(incOutcome-incCost)
-    seNB[i] <- sqrt(wtp[i]*wtp[i]*(seOutcomeA^2 + seOutcomeB^2)+ (seCostA^2 + seCostB^2) 
-                         + 2*wtp[i]*(stats::cor(cost[idxA],outcome[idxA])*seOutcomeA*seCostA)
-                         + 2*wtp[i]*(stats::cor(cost[idxB],outcome[idxB])*seOutcomeB*seCostB))
+    NB[i] <- (wtp[i]*incOutcome) - incCost
+    if(treatResponse == 'beneficial'){
+      seNB[i] <- sqrt(wtp[i]*wtp[i]*(seOutcomeA^2 + seOutcomeB^2) + (seCostA^2 + seCostB^2) 
+                      - 2*wtp[i]*(stats::cor(cost[idxA],outcome[idxA])*seOutcomeA*seCostA)
+                      - 2*wtp[i]*(stats::cor(cost[idxB],outcome[idxB])*seOutcomeB*seCostB))
+    }else{
+      seNB[i] <- sqrt(wtp[i]*wtp[i]*(seOutcomeA^2 + seOutcomeB^2) + (seCostA^2 + seCostB^2) 
+                      + 2*wtp[i]*(stats::cor(cost[idxA],outcome[idxA])*seOutcomeA*seCostA)
+                      + 2*wtp[i]*(stats::cor(cost[idxB],outcome[idxB])*seOutcomeB*seCostB))
+    }
     lclNB[i]    = NB[i] - 1.96*seNB[i]
     uclNB[i]    = NB[i] + 1.96*seNB[i]
   }

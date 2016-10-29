@@ -6,6 +6,8 @@
 #' and 2 treatment arms names.
 #' @param data a dataset with 4 columns holding respectively, ID, treatment outcome,
 #'        treatment cost and treatment arm.
+#' @treatResponse a character, default is \code{beneficial} i.e. the treatment resulted in beneficial response;
+#' otherwise \code{harmful}, the treatement resulted in harmful outcome
 #' @details to be written
 #' @return a list which holds to elements: ICER value and other statistics for the given dataset
 #' @export
@@ -26,9 +28,9 @@
 #' output$Stats
 #' }
 #'
-icer <- function(data=NULL){
+icer <- function(data=NULL, treatResponse='beneficial'){
   
-  # stop if two datasets are not provided
+  # stop if no dataset is provided
   if(is.null(data)){
     stop("Please provide at a valid dataset to analyse!", call.=FALSE)
   }
@@ -59,15 +61,20 @@ icer <- function(data=NULL){
   seOutcomeA <- s$seOutcomeA; seOutcomeB <- s$seOutcomeB
    
   # compute ICER
-  incCost <- meanCostB - meanCostA
-  incOutcome <- meanOutcomeA - meanOutcomeB
+  if(treatResponse == 'beneficial'){
+    incCost <- meanCostB - meanCostA
+    incOutcome <- meanOutcomeB - meanOutcomeA
+  }else{
+    incCost <- meanCostA - meanCostB
+    incOutcome <- meanOutcomeA - meanOutcomeB
+  }
   ICER = incCost/incOutcome
   
   # format and return output
   output <- vector("list", 2); names(output) <- c("ICER","Stats")
   output[[1]] <- ICER
-  dx <- cbind(c(meanCostA,meanCostB), c(meanOutcomeA,meanOutcomeA),
-              c(seCostA,seCostB), c(seOutcomeA,seOutcomeA))
+  dx <- cbind(c(meanCostA,meanCostB), c(meanOutcomeA,meanOutcomeB),
+              c(seCostA,seCostB), c(seOutcomeA,seOutcomeB))
   colnames(dx) <- c("meanCost", "meanOutcome", "seCost", "seOutcome")
   rownames(dx) <- c(paste0("Treatment_",trt[1]), paste0("Treatment_",trt[2]))
   output[[2]] <- dx

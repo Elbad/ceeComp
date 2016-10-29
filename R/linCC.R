@@ -13,7 +13,7 @@
 #' @param ccThreshold concordance correlation cut-off, default value is 0.40.
 #' @details to be written
 #' @return a list which holds the below items:
-#' \code{ccNB} Lin's concordance correlation between net benefits.
+#' \code{cccNB} Lin's concordance correlation between net benefits.
 #' \code{secccNB} standard error of the concordance correlation.
 #' \code{lclcccNB} lower limit of the concordance correlation.
 #' \code{uclcccNB} upper limit of the concordance correlation.
@@ -116,8 +116,9 @@ linCC <- function(data1=NULL, data2=NULL, will2pay=NULL, ccThreshold=0.40){
   }
   
   # return output
-  output <- list(ccNB, secccNB, lclcccNB, uclcccNB, pvaluecccNB1, pvaluecccNB2)
-  names(output) <- c("ccNB", "secccNB", "lclcccNB", "uclcccNB", "pvaluecccNB1", "pvaluecccNB2")
+  output <- list(cccNB, secccNB, lclcccNB, uclcccNB, pvaluecccNB1, pvaluecccNB2)
+  names(output) <- c("cccNB", "secccNB", "lclcccNB", "uclcccNB", "pvaluecccNB1", "pvaluecccNB2")
+  return(output)
     
 }
 
