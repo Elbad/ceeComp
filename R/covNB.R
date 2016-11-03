@@ -98,42 +98,36 @@ covNB <- function(data1=NULL, data2=NULL, will2pay=NULL, extraOutput=FALSE, trea
   
   # compute covariance between net benefits obtained above and other statistics
   ndt <- length(ldt)
-  covOutcomeA <- vector("list",length(wtp))
+  covOutcomeA <- vector("list",length(wtp));
   covOutcomeB <- vector("list",length(wtp))
-  covCostOutcomeA <- vector("list",length(wtp))
-  covCostOutcomeB <- vector("list",length(wtp))
-  covDeltaOutcome <- vector("list",length(wtp))
-  covDeltaCostOutcome_A_B <- vector("list",length(wtp))
-  covDeltaCostOutcome_B_A <- vector("list",length(wtp))
+  covCostOutcomeA1 <- vector("list",length(wtp));  covCostOutcomeA2 <- vector("list",length(wtp))
+  covCostOutcomeB1 <- vector("list",length(wtp));  covCostOutcomeB2 <- vector("list",length(wtp))
+  covDeltaOutcome <- vector("list",length(wtp));  
+  covDeltaCostOutcome1 <- vector("list",length(wtp)); covDeltaCostOutcome2 <- vector("list",length(wtp))
   covNB <- vector("list",length(wtp))
   rhoNB <- vector("list",length(wtp))
   
   # get covariance between cost for the 2 treatment arms
   # and then compute covNB for each willingness-to-pay value
-  covCostA <- stats::cov(cbind(cost1[idxA1], cost2[idxA2]))
-  covCostB <- stats::cov(cbind(cost1[idxB1], cost2[idxB2]))
+  covCostA <- (stats::cov(cbind(cost1[idxA1], cost2[idxA2]))/length(cost2[idxA2]))[1,2]
+  covCostB <- (stats::cov(cbind(cost1[idxB1], cost2[idxB2]))/length(cost2[idxB2]))[1,2]
   covDeltaCost <- covCostA + covCostB
-  
   for(i in 1:length(wtp)){
-    covOA <- (wtp[i]^2) * (stats::cor(outcome1[idxA1], outcome2[idxA2]) * (seOutcomeA1 * seOutcomeA2))
-    covOutcomeA[[i]] <- cbind(c(seOutcomeA1^2, covOA), c(covOA, seOutcomeA2^2))
-    
-    covOB <- (wtp[i]^2) * (stats::cor(outcome1[idxB1], outcome2[idxB2]) * (seOutcomeB1 * seOutcomeB2))
-    covOutcomeB[[i]] <- cbind(c(seOutcomeB1^2, covOB), c(covOB, seOutcomeB2^2))
-    
-    covCostOutcomeA[[i]] <- (wtp[i]) * (stats::cor(cost1[idxA1], outcome2[idxA2]) * (seOutcomeA1 * seOutcomeA2))
-    covCostOutcomeB[[i]] <- (wtp[i]) * (stats::cor(cost1[idxB1], outcome2[idxB2]) * (seOutcomeB1 * seOutcomeB2))
-    
+    covOutcomeA[[i]] <- ((wtp[i]^2) * stats::cov(cbind(outcome1[idxA1], outcome2[idxA2]))/length(cost2[idxA2]))[1,2]
+    covOutcomeB[[i]] <- ((wtp[i]^2) * stats::cov(cbind(outcome1[idxB1], outcome2[idxB2]))/length(cost2[idxA2]))[1,2] 
     covDeltaOutcome[[i]] <- covOutcomeA[[i]] + covOutcomeB[[i]] 
-    if(treatResponse == "beneficial"){
-      covDeltaCostOutcome_A_B[[i]] <- (covCostOutcomeA[[i]] + covCostOutcomeB[[i]])
-      covDeltaCostOutcome_B_A[[i]] <- (covCostOutcomeB[[i]] + covCostOutcomeA[[i]])
-    }else{
-      covDeltaCostOutcome_A_B[[i]] <- -(covCostOutcomeA[[i]] + covCostOutcomeB[[i]])
-      covDeltaCostOutcome_B_A[[i]] <- -(covCostOutcomeB[[i]] + covCostOutcomeA[[i]])
-    }
-    covNB[[i]] <- covDeltaOutcome[[i]] - covDeltaCostOutcome_A_B[[i]] - covDeltaCostOutcome_B_A[[i]] + covDeltaCost
-    rhoNB[[i]] <- covNB[[i]]/ (seNB1[i] * seNB2[i]) 
+    
+    covCostOutcomeA1[[i]] <- (wtp[i] * stats::cov(cbind(cost1[idxA1], outcome2[idxA2]))/length(cost2[idxA2]))[1,2]
+    covCostOutcomeB1[[i]] <- (wtp[i] * stats::cov(cbind(cost1[idxB1], outcome2[idxB2]))/length(cost2[idxA2]))[1,2]
+    
+    covCostOutcomeA2[[i]] <- (wtp[i] * stats::cov(cbind(cost2[idxA2], outcome1[idxA1]))/length(cost2[idxA2]))[1,2]
+    covCostOutcomeB2[[i]] <- (wtp[i] * stats::cov(cbind(cost2[idxB2], outcome1[idxB1]))/length(cost2[idxA2]))[1,2]
+    
+    covDeltaCostOutcome1[[i]] <- (covCostOutcomeA1[[i]] + covCostOutcomeB1[[i]]) # for harmful outcome, stick minus sign
+    covDeltaCostOutcome2[[i]] <- (covCostOutcomeA2[[i]] + covCostOutcomeB2[[i]]) # for harmful outcome, stick minus sign
+    
+    covNB[[i]] <- (covDeltaOutcome[[i]] - covDeltaCostOutcome1[[i]] - covDeltaCostOutcome2[[i]] + covDeltaCost)
+    rhoNB[[i]] <- covNB[[i]] / (seNB1[i] * seNB2[i]) 
   }
 
   # return a list with 'covNB' or more depending on what the user specified
