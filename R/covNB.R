@@ -123,8 +123,13 @@ covNB <- function(data1=NULL, data2=NULL, will2pay=NULL, extraOutput=FALSE, trea
     covCostOutcomeA2[[i]] <- (wtp[i] * stats::cov(cbind(cost2[idxA2], outcome1[idxA1]))/length(cost2[idxA2]))[1,2]
     covCostOutcomeB2[[i]] <- (wtp[i] * stats::cov(cbind(cost2[idxB2], outcome1[idxB1]))/length(cost2[idxA2]))[1,2]
     
-    covDeltaCostOutcome1[[i]] <- (covCostOutcomeA1[[i]] + covCostOutcomeB1[[i]]) # for harmful outcome, stick minus sign
-    covDeltaCostOutcome2[[i]] <- (covCostOutcomeA2[[i]] + covCostOutcomeB2[[i]]) # for harmful outcome, stick minus sign
+    if(treatResponse == 'beneficial'){
+      covDeltaCostOutcome1[[i]] <- (covCostOutcomeA1[[i]] + covCostOutcomeB1[[i]])
+      covDeltaCostOutcome2[[i]] <- (covCostOutcomeA2[[i]] + covCostOutcomeB2[[i]])
+    }else{
+      covDeltaCostOutcome1[[i]] <- -(covCostOutcomeA1[[i]] + covCostOutcomeB1[[i]])
+      covDeltaCostOutcome2[[i]] <- -(covCostOutcomeA2[[i]] + covCostOutcomeB2[[i]])
+    }
     
     covNB[[i]] <- (covDeltaOutcome[[i]] - covDeltaCostOutcome1[[i]] - covDeltaCostOutcome2[[i]] + covDeltaCost)
     rhoNB[[i]] <- covNB[[i]] / (seNB1[i] * seNB2[i]) 
