@@ -4,7 +4,8 @@
 \alias{linCC}
 \title{Computes Lin's concordance correlation between 2 distinct datasets.}
 \usage{
-linCC(data1 = NULL, data2 = NULL, will2pay = NULL, ccThreshold = 0.4)
+linCC(data1 = NULL, data2 = NULL, will2pay = NULL, ccThreshold = 0.4,
+  CI = 0.95, treatResponse = "beneficial")
 }
 \arguments{
 \item{data1}{a dataset with 4 columns holding respectively, ID, treatment outcome,
@@ -16,10 +17,15 @@ treatment cost and treatment arm.}
 \item{will2pay}{a numeric vector of willingness-to-pay thresholds.}
 
 \item{ccThreshold}{concordance correlation cut-off, default value is 0.40.}
+
+\item{CI}{confidence interval.}
+
+\item{treatResponse}{a character, default is \code{beneficial} i.e. the treatment resulted in beneficial response;
+otherwise \code{harmful}, the treatement resulted in harmful outcome.}
 }
 \value{
 a list which holds the below items:
-\code{ccNB} Lin's concordance correlation between net benefits.
+\code{cccNB} Lin's concordance correlation between net benefits.
 \code{secccNB} standard error of the concordance correlation.
 \code{lclcccNB} lower limit of the concordance correlation.
 \code{uclcccNB} upper limit of the concordance correlation.

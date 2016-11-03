@@ -11,7 +11,7 @@
 #'        treatment cost and treatment arm.
 #' @param will2pay a numeric vector of willingness-to-pay thresholds.
 #' @param CI confidence interval.
-#' @treatResponse a character, default is \code{beneficial} i.e. the treatment resulted in beneficial response;
+#' @param treatResponse a character, default is \code{beneficial} i.e. the treatment resulted in beneficial response;
 #' otherwise \code{harmful}, the treatement resulted in harmful outcome.
 #' @details to be written
 #' @return a list which holds the below items; items other than \code{covNB} are optional, set the 
@@ -77,7 +77,7 @@ diffNB <- function(data1=NULL, data2=NULL, will2pay=NULL, CI=0.95, treatResponse
   }
   NB1 <- nbRes[[1]][,"NetBenefit"]; NB2 <- nbRes[[2]][,"NetBenefit"]
   seNB1 <- nbRes[[1]][,"StandardError"]; seNB2 <- nbRes[[2]][,"StandardError"]
-  covValue <- covNB(ldt[[1]], ldt[[2]], will2pay=wtp, CI=CI, treatResponse=treatResponse)
+  covValue <- covNB(ldt[[1]], ldt[[2]], will2pay=wtp, extraOutput=TRUE, CI=CI, treatResponse=treatResponse)
   
   # vectors to hold estimated values
   diffNB <- vector("numeric", length(wtp))
@@ -91,7 +91,7 @@ diffNB <- function(data1=NULL, data2=NULL, will2pay=NULL, CI=0.95, treatResponse
     sediffNB[i] <- round(sqrt(seNB1[i]^2 + seNB2[i]^2 - (2*covValue[[1]][[i]])),4)
     lcldiffNB[i] <- diffNB[i] - 1.96*sediffNB[i]
     ucldiffNB[i] <- diffNB[i] + 1.96*sediffNB[i]  
-    pvaluediffNB[i] <- 2*pnorm(-abs(diffNB[i])/sediffNB[i])
+    pvaluediffNB[i] <- 2*stats::pnorm(-abs(diffNB[i])/sediffNB[i])
   }
   
   output <- list(diffNB, sediffNB, lcldiffNB, ucldiffNB, pvaluediffNB)

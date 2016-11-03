@@ -13,7 +13,7 @@
 #' @param extraOutput a boolean set to FALSE by default, if set to TRUE other information are returned
 #' in addition to \code{covNB}, the covariance between net benefits from the two datasets.
 #' @param CI confidence interval.
-#' @treatResponse a character, default is \code{beneficial} i.e. the treatment resulted in beneficial response;
+#' @param treatResponse a character, default is \code{beneficial} i.e. the treatment resulted in beneficial response;
 #' otherwise \code{harmful}, the treatement resulted in harmful outcome
 #' @details to be written
 #' @return a list which holds the below items; items other than \code{covNB} are optional, set the 
@@ -41,7 +41,7 @@
 #' }
 #'
 
-covNB <- function(data1=NULL, data2=NULL, will2pay=NULL, extraOutput=FALSE, treatResponse="beneficial"){
+covNB <- function(data1=NULL, data2=NULL, will2pay=NULL, extraOutput=FALSE, CI=0.95, treatResponse="beneficial"){
   
   # stop if two datasets are not provided
   if(is.null(data1) | is.null(data2)){
@@ -84,7 +84,7 @@ covNB <- function(data1=NULL, data2=NULL, will2pay=NULL, extraOutput=FALSE, trea
   nbRes <- vector("list", 2)
   stats <- vector("list", 2)
   for(i in 1:2){
-    nbRes[[i]] <- netbenef(ldt[[i]], wtp)
+    nbRes[[i]] <- netbenef(ldt[[i]], wtp, CI=0.95, treatResponse="beneficial")
     stats[[i]] <- getSummaries(ldt[[i]])
   }
   seNB1 <- nbRes[[1]][,"StandardError"]; seNB2 <- nbRes[[2]][,"StandardError"]
@@ -141,7 +141,7 @@ covNB <- function(data1=NULL, data2=NULL, will2pay=NULL, extraOutput=FALSE, trea
     output <- list("covNB"=covNB, "rhoNB"=rhoNB, "covCostA"=covCostA, "covCostB"=covCostB, 
                    "covOutcomeA"=covOutcomeA, "covOutcomeB"=covOutcomeB)
   }else{
-    output <- list("covNB"=covNB)
+    output <- unlist(covNB)
   }
   return(output)
 }

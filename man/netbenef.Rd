@@ -4,13 +4,19 @@
 \alias{netbenef}
 \title{Computes net benefit values across a range of wilingness-to-pay thresholds}
 \usage{
-netbenef(data = NULL, will2pay = NULL)
+netbenef(data = NULL, will2pay = NULL, CI = 0.95,
+  treatResponse = "beneficial")
 }
 \arguments{
 \item{data}{a dataset with 4 columns holding respectively, ID, treatment outcome,
 treatment cost and treatment arm.}
 
 \item{will2pay}{a numeric vector of willingness-to-pay thresholds.}
+
+\item{CI}{confidence interval.}
+
+\item{treatResponse}{a character, default is \code{beneficial} i.e. the treatment resulted in beneficial response;
+otherwise \code{harmful}, the treatement resulted in harmful outcome}
 }
 \value{
 a table with for columns: net benefit, standard error, upper and lower limit

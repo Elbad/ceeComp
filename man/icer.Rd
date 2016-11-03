@@ -4,11 +4,14 @@
 \alias{icer}
 \title{Computes incremental cost-effectiveness ratio (ICER)}
 \usage{
-icer(data = NULL)
+icer(data = NULL, treatResponse = "beneficial")
 }
 \arguments{
 \item{data}{a dataset with 4 columns holding respectively, ID, treatment outcome,
 treatment cost and treatment arm.}
+
+\item{treatResponse}{a character, default is \code{beneficial} i.e. the treatment resulted in beneficial response;
+otherwise \code{harmful}, the treatement resulted in harmful outcome}
 }
 \value{
 a list which holds to elements: ICER value and other statistics for the given dataset

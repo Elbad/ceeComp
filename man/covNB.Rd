@@ -2,9 +2,10 @@
 % Please edit documentation in R/covNB.R
 \name{covNB}
 \alias{covNB}
-\title{Computes computes the covariance between net benefit values from 2 distinct datasets.}
+\title{Computes the covariance between net benefit values from 2 distinct datasets.}
 \usage{
-covNB(data1 = NULL, data2 = NULL, will2pay = NULL, extraOutput = FALSE)
+covNB(data1 = NULL, data2 = NULL, will2pay = NULL, extraOutput = FALSE,
+  CI = 0.95, treatResponse = "beneficial")
 }
 \arguments{
 \item{data1}{a dataset with 4 columns holding respectively, ID, treatment outcome,
@@ -15,8 +16,13 @@ treatment cost and treatment arm.}
 
 \item{will2pay}{a numeric vector of willingness-to-pay thresholds.}
 
-\item{extraOutput}{a boolean set to FALSe by default, if set to TRUE other information are returned
+\item{extraOutput}{a boolean set to FALSE by default, if set to TRUE other information are returned
 in addition to \code{covNB}, the covariance between net benefits from the two datasets.}
+
+\item{CI}{confidence interval.}
+
+\item{treatResponse}{a character, default is \code{beneficial} i.e. the treatment resulted in beneficial response;
+otherwise \code{harmful}, the treatement resulted in harmful outcome}
 }
 \value{
 a list which holds the below items; items other than \code{covNB} are optional, set the 

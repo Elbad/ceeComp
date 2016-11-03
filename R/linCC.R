@@ -12,7 +12,7 @@
 #' @param will2pay a numeric vector of willingness-to-pay thresholds.
 #' @param ccThreshold concordance correlation cut-off, default value is 0.40.
 #' @param CI confidence interval.
-#' @treatResponse a character, default is \code{beneficial} i.e. the treatment resulted in beneficial response;
+#' @param treatResponse a character, default is \code{beneficial} i.e. the treatment resulted in beneficial response;
 #' otherwise \code{harmful}, the treatement resulted in harmful outcome.
 #' @details to be written
 #' @return a list which holds the below items:
@@ -81,7 +81,7 @@ linCC <- function(data1=NULL, data2=NULL, will2pay=NULL, ccThreshold=0.40, CI=0.
 
   seNB1 <- nbRes[[1]][,"StandardError"]; seNB2 <- nbRes[[2]][,"StandardError"]
   diff <- diffRes$diffNB
-  rhoNB <- covRes$rhoNB
+  rhoNB <- unlist(covRes$rhoNB)
   
   # vector the old estimated values
   cbNB <- vector("numeric", length(wtp))
@@ -112,10 +112,10 @@ linCC <- function(data1=NULL, data2=NULL, will2pay=NULL, ccThreshold=0.40, CI=0.
     
     # test hypothesis that cccNB > the concordance correlation cut-off
     ccc01 <- ccThreshold
-    pvaluecccNB1[i] <- pnorm(-abs(zcccNB[i]-0.5*log((1+ccc01)/(1-ccc01)))/secccNB[i])
+    pvaluecccNB1[i] <- stats::pnorm(-abs(zcccNB[i]-0.5*log((1+ccc01)/(1-ccc01)))/secccNB[i])
     dLoss[i] <- (0.15*rhoNB[i])^2
     ccc02[i] <- cbNB[i]*sqrt(rhoNB[i]^2-dLoss[i])
-    pvaluecccNB2[i] = pnorm(-abs(zcccNB[i]-0.5*log((1+ccc02[i] )/(1-ccc02[i] )))/secccNB[i])
+    pvaluecccNB2[i] = stats::pnorm(-abs(zcccNB[i]-0.5*log((1+ccc02[i] )/(1-ccc02[i] )))/secccNB[i])
   }
   
   # return output

@@ -4,7 +4,8 @@
 \alias{diffNB}
 \title{Computes difference between net benefits from 2 distinct datasets.}
 \usage{
-diffNB(data1 = NULL, data2 = NULL, will2pay = NULL)
+diffNB(data1 = NULL, data2 = NULL, will2pay = NULL, CI = 0.95,
+  treatResponse = "beneficial")
 }
 \arguments{
 \item{data1}{a dataset with 4 columns holding respectively, ID, treatment outcome,
@@ -14,6 +15,11 @@ treatment cost and treatment arm.}
 treatment cost and treatment arm.}
 
 \item{will2pay}{a numeric vector of willingness-to-pay thresholds.}
+
+\item{CI}{confidence interval.}
+
+\item{treatResponse}{a character, default is \code{beneficial} i.e. the treatment resulted in beneficial response;
+otherwise \code{harmful}, the treatement resulted in harmful outcome.}
 }
 \value{
 a list which holds the below items; items other than \code{covNB} are optional, set the 
