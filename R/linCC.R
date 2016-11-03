@@ -11,6 +11,9 @@
 #'        treatment cost and treatment arm.
 #' @param will2pay a numeric vector of willingness-to-pay thresholds.
 #' @param ccThreshold concordance correlation cut-off, default value is 0.40.
+#' @param CI confidence interval.
+#' @treatResponse a character, default is \code{beneficial} i.e. the treatment resulted in beneficial response;
+#' otherwise \code{harmful}, the treatement resulted in harmful outcome.
 #' @details to be written
 #' @return a list which holds the below items:
 #' \code{cccNB} Lin's concordance correlation between net benefits.
@@ -31,7 +34,7 @@
 #' 
 #' }
 #'
-linCC <- function(data1=NULL, data2=NULL, will2pay=NULL, ccThreshold=0.40){
+linCC <- function(data1=NULL, data2=NULL, will2pay=NULL, ccThreshold=0.40, CI=0.95, treatResponse="beneficial"){
   
   # stop if two datasets are not provided
   if(is.null(data1) | is.null(data2)){
@@ -71,10 +74,10 @@ linCC <- function(data1=NULL, data2=NULL, will2pay=NULL, ccThreshold=0.40){
   # 'rhoNB', 'seNB', 'diffNB' etc...
   nbRes <- vector("list", 2)
   for(i in 1:2){
-    nbRes[[i]] <- netbenef(ldt[[i]], wtp)
+    nbRes[[i]] <- netbenef(ldt[[i]], wtp, CI=CI, treatResponse=treatResponse)
   }
   diffRes <- diffNB(data1=ldt[[1]], data2=ldt[[2]],  will2pay=wtp)
-  covRes <- covNB(data1=ldt[[1]], data2=ldt[[2]], will2pay=wtp, extraOutput=TRUE)
+  covRes <- covNB(data1=ldt[[1]], data2=ldt[[2]], will2pay=wtp, extraOutput=TRUE, CI=CI, treatResponse=treatResponse)
 
   seNB1 <- nbRes[[1]][,"StandardError"]; seNB2 <- nbRes[[2]][,"StandardError"]
   diff <- diffRes$diffNB

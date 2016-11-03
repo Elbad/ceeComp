@@ -10,6 +10,9 @@
 #' @param data2 a dataset with 4 columns holding respectively, ID, treatment outcome,
 #'        treatment cost and treatment arm.
 #' @param will2pay a numeric vector of willingness-to-pay thresholds.
+#' @param CI confidence interval.
+#' @treatResponse a character, default is \code{beneficial} i.e. the treatment resulted in beneficial response;
+#' otherwise \code{harmful}, the treatement resulted in harmful outcome.
 #' @details to be written
 #' @return a list which holds the below items; items other than \code{covNB} are optional, set the 
 #' the parameter \code{extraOutput} to have those items returned:
@@ -31,7 +34,7 @@
 #' }
 #'
 
-diffNB <- function(data1=NULL, data2=NULL, will2pay=NULL){
+diffNB <- function(data1=NULL, data2=NULL, will2pay=NULL, CI=0.95, treatResponse="beneficial"){
   
   # stop if two datasets are not provided
   if(is.null(data1) | is.null(data2)){
@@ -70,12 +73,11 @@ diffNB <- function(data1=NULL, data2=NULL, will2pay=NULL){
   # compute net benefit and covariance between net benefits
   nbRes <- vector("list", 2)
   for(i in 1:2){
-    nbRes[[i]] <- netbenef(ldt[[i]], wtp)
+    nbRes[[i]] <- netbenef(ldt[[i]], wtp, CI=CI, treatResponse=treatResponse)
   }
   NB1 <- nbRes[[1]][,"NetBenefit"]; NB2 <- nbRes[[2]][,"NetBenefit"]
   seNB1 <- nbRes[[1]][,"StandardError"]; seNB2 <- nbRes[[2]][,"StandardError"]
-  covValue <- covNB(ldt[[1]], ldt[[2]], will2pay=wtp)
-  
+  covValue <- covNB(ldt[[1]], ldt[[2]], will2pay=wtp, CI=CI, treatResponse=treatResponse)
   
   # vectors to hold estimated values
   diffNB <- vector("numeric", length(wtp))

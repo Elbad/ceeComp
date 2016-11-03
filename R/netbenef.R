@@ -8,6 +8,7 @@
 #' @param data a dataset with 4 columns holding respectively, ID, treatment outcome,
 #'        treatment cost and treatment arm.
 #' @param will2pay a numeric vector of willingness-to-pay thresholds.
+#' @param CI confidence interval.
 #' @treatResponse a character, default is \code{beneficial} i.e. the treatment resulted in beneficial response;
 #' otherwise \code{harmful}, the treatement resulted in harmful outcome
 #' @details to be written

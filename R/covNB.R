@@ -12,6 +12,7 @@
 #' @param will2pay a numeric vector of willingness-to-pay thresholds.
 #' @param extraOutput a boolean set to FALSE by default, if set to TRUE other information are returned
 #' in addition to \code{covNB}, the covariance between net benefits from the two datasets.
+#' @param CI confidence interval.
 #' @treatResponse a character, default is \code{beneficial} i.e. the treatment resulted in beneficial response;
 #' otherwise \code{harmful}, the treatement resulted in harmful outcome
 #' @details to be written
